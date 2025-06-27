@@ -1,11 +1,18 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from uuid import uuid4
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
+from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 from config import MODEL_NAME, PROCESS_PATH
 from dependencies import get_pipeline
 from pipeline.chunker import  get_chunk_strategy
 from pipeline.processor import TextProcessingPipeline
+import io
+from config import PROCESS_PATH
+from services import get_supabase_store
+from services.supabase_store import SupabaseChunkStore
+from postgrest import APIError
 
 
 class ChunkOptions(BaseModel):
@@ -21,13 +28,23 @@ class ProcessRequest(BaseModel):
 
 class ChunkResult(BaseModel):
     document_id: str | None = None
-    chunk_id: int
+    chunk_id: str
+    raw_text: str
     embedding: list[float]
 
 class ProcessResponse(BaseModel):
     document_id: Optional[str] = None
     total_chunks: int
     chunks: list[ChunkResult]
+
+class IngestResponse(BaseModel):
+    document_id: str
+    total_chunks: int
+
+
+def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 class ApiController:
     def __init__(self, pipeline: TextProcessingPipeline):
@@ -38,6 +55,13 @@ class ApiController:
         self.router.add_api_route(
             PROCESS_PATH,
             self.process_text,
+            methods=["POST"],
+            response_model=ProcessResponse
+        )
+
+        self.router.add_api_route(
+            f"{PROCESS_PATH}/pdf",
+            self.process_pdf,
             methods=["POST"],
             response_model=ProcessResponse
         )
@@ -72,6 +96,70 @@ class ApiController:
             total_chunks=result["total_chunks"],
             chunks=chunks
         )
+
+    async def process_pdf(
+            self,
+            pdf_file: UploadFile = File(...),
+            options:  Optional[str] = None,
+            pipeline: TextProcessingPipeline = Depends(get_pipeline),
+            store: SupabaseChunkStore = Depends(get_supabase_store),
+
+        ) -> ProcessResponse:
+            # 1) Validate
+            if pdf_file.content_type != "application/pdf":
+                raise HTTPException(400, "Only PDF files are supported")
+            data = await pdf_file.read()
+            if not data:
+                raise HTTPException(400, "Uploaded PDF is empty")
+
+            # 2) Extract text
+            reader = PdfReader(io.BytesIO(data))
+            raw_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            if not raw_text.strip():
+                raise HTTPException(400, "Could not extract any text from PDF")
+
+            # 3) Now call the pipeline directly (instead of routing through process_text)
+            model = SentenceTransformer(MODEL_NAME)
+            print("Embedding dim:", model.get_sentence_embedding_dimension())
+            chunk_strategy = get_chunk_strategy(options)
+
+            result = pipeline.process(
+                document_id    = str(uuid4()),
+                raw_text       = raw_text,
+                chunk_strategy = chunk_strategy
+            )
+            raw_chunks = result["chunks"]
+
+
+            records = [
+                {
+                "raw_text":  chunk["text"],
+                "embedding": chunk["embedding"],
+                }
+                for chunk in raw_chunks
+            ]
+
+            try:
+                inserted = store.insert_chunks(records)
+            except APIError as e:
+                raise HTTPException(502, detail=f"DB insert failed: {e}")
+
+
+
+            # 4) map them into your response model (if you want to return chunk_ids)
+            chunks = []
+            for c, ins in zip(raw_chunks, inserted):
+                chunks.append(ChunkResult(
+                    chunk_id   = ins["chunk_id"],    # the DB‐generated UUID
+                    raw_text   = c["text"],
+                    embedding  = c["embedding"],
+                ))
+
+            return ProcessResponse(
+                document_id  = result["document_id"],
+                total_chunks = result["total_chunks"],
+                chunks       = chunks
+            )
 
 
 
