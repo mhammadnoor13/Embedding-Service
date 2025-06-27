@@ -1,5 +1,6 @@
 import os
 from typing import List
+from postgrest import APIError
 from supabase import create_client, Client
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -20,6 +21,7 @@ class SupabaseChunkStore:
         self.client: Client = create_client(url, key)
 
     def insert_chunks(self, records: List[ChunkRecord]):
+        
         """
         insert a batch of chunk records into the 'chunks' table.
         """
@@ -32,3 +34,20 @@ class SupabaseChunkStore:
         )
         
         return res.data
+
+    def similarity_search(self, embedding: List[float], top_k: int) -> List[str]:
+        """
+        Call the match_chunks RPC to get the top_k most similar chunks,
+        and return just their raw_text fields.
+        """
+        try:
+            res = (
+                self.client
+                    .rpc("match_chunks", {"query_embedding": embedding, "match_count": top_k})
+                    .execute()
+            )
+        except APIError as e:
+            raise
+        print("Returned rows:", len(res.data))
+        # res.data is a list of dicts with keys chunk_id, raw_text, embedding
+        return [row["raw_text"] for row in res.data]

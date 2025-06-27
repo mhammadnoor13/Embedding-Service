@@ -1,12 +1,14 @@
-from typing import Optional
+from typing import List, Optional
 from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
-from config import MODEL_NAME, PROCESS_PATH
-from dependencies import get_pipeline
+from config import MODEL_NAME, PROCESS_PATH, SIMILARITY_PATH
+from dependencies import get_embedder, get_pipeline, get_preprocessor
+from embedding.local_embedder import LocalEmbedder
 from pipeline.chunker import  get_chunk_strategy
+from pipeline.preprocessor import TextPreprocessor
 from pipeline.processor import TextProcessingPipeline
 import io
 from config import PROCESS_PATH
@@ -33,13 +35,16 @@ class ChunkResult(BaseModel):
     embedding: list[float]
 
 class ProcessResponse(BaseModel):
-    document_id: Optional[str] = None
     total_chunks: int
     chunks: list[ChunkResult]
 
 class IngestResponse(BaseModel):
     document_id: str
     total_chunks: int
+
+class SearchRequest(BaseModel):
+    raw_text: str
+    top_k:Optional[int] = 5
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
@@ -65,7 +70,13 @@ class ApiController:
             methods=["POST"],
             response_model=ProcessResponse
         )
-    
+
+        self.router.add_api_route(
+            f"{SIMILARITY_PATH}",
+            self.similarity_search,
+            methods=["POST"],
+            response_model=list[str]
+        )
     async def process_text(
             self,
             request: ProcessRequest, 
@@ -81,7 +92,6 @@ class ApiController:
         chunk_strategy = get_chunk_strategy(request.options)
         
         result = pipline.process(
-            document_id = request.document_id or "",
             raw_text = request.raw_text,
             chunk_strategy = chunk_strategy
         )
@@ -92,7 +102,6 @@ class ApiController:
         
 
         return ProcessResponse(
-            document_id=result["document_id"],
             total_chunks=result["total_chunks"],
             chunks=chunks
         )
@@ -124,7 +133,6 @@ class ApiController:
             chunk_strategy = get_chunk_strategy(options)
 
             result = pipeline.process(
-                document_id    = str(uuid4()),
                 raw_text       = raw_text,
                 chunk_strategy = chunk_strategy
             )
@@ -156,11 +164,25 @@ class ApiController:
                 ))
 
             return ProcessResponse(
-                document_id  = result["document_id"],
                 total_chunks = result["total_chunks"],
                 chunks       = chunks
             )
+    async def similarity_search(
+            self,
+            request: SearchRequest,
+            preprocessor: TextPreprocessor = Depends(get_preprocessor),
+            embedder: LocalEmbedder = Depends(get_embedder),
+            store: SupabaseChunkStore = Depends(get_supabase_store),
+    ) -> List[str]:
+        clean_text = preprocessor.clean(request.raw_text)
+        embedding = embedder.encode([clean_text])[0]
 
+        try:
+            similar_texts = store.similarity_search(embedding, request.top_k)
+        except Exception as e:
+            # wrap any RPC/db errors as a 502
+            raise HTTPException(status_code=502, detail=f"Similarity search failed: {e}")
+        return similar_texts
 
 
 

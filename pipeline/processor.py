@@ -37,7 +37,6 @@ class TextProcessingPipeline:
         self.embedder = EmbedderFactory.get_embedder(embedder_name)
 
     def process(self,
-                document_id: str,
                 raw_text: str,
                 chunk_strategy: ChunkStrategy,
                 options: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -56,13 +55,11 @@ class TextProcessingPipeline:
         chunk_results: List[Dict[str, Any]] = []
         for (chunk_id, chunk_text), embedding_vector in zip(chunks, embeddings):
             chunk_results.append({
-                "chunk_id": chunk_id,
                 "text": chunk_text,
                 "embedding": embedding_vector
             })
 
         return {
-            "document_id": document_id,
             "total_chunks": len(chunk_results),
             "chunks": chunk_results
         }
