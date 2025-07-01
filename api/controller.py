@@ -46,6 +46,12 @@ class SearchRequest(BaseModel):
     raw_text: str
     top_k:Optional[int] = 5
 
+class Document(BaseModel):
+    id:str
+    snippet:str
+
+class RetrievedDocuments(BaseModel):
+    documents:List[Document]
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     reader = PdfReader(io.BytesIO(pdf_bytes))
@@ -75,7 +81,7 @@ class ApiController:
             f"{SIMILARITY_PATH}",
             self.similarity_search,
             methods=["POST"],
-            response_model=list[str]
+            response_model=RetrievedDocuments
         )
     async def process_text(
             self,
@@ -173,16 +179,20 @@ class ApiController:
             preprocessor: TextPreprocessor = Depends(get_preprocessor),
             embedder: LocalEmbedder = Depends(get_embedder),
             store: SupabaseChunkStore = Depends(get_supabase_store),
-    ) -> List[str]:
+    ) -> RetrievedDocuments:
         clean_text = preprocessor.clean(request.raw_text)
         embedding = embedder.encode([clean_text])[0]
-
         try:
             similar_texts = store.similarity_search(embedding, request.top_k)
         except Exception as e:
             # wrap any RPC/db errors as a 502
             raise HTTPException(status_code=502, detail=f"Similarity search failed: {e}")
-        return similar_texts
+        
+        documents = [
+            Document(id=str(i), snippet=text)
+            for i, text in enumerate(similar_texts)
+        ]
+        return RetrievedDocuments(documents=documents)
 
 
 
