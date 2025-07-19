@@ -1,16 +1,36 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
-from api.controller import ApiController
+from application.services.embed_text import EmbedTextService
 from config import MODEL_NAME
+from infrastrcture.embedding.hf_embedding import HFEmbeddingModel
+from infrastrcture.supabase_repository.supabase_text_repository import SupaBaseTextRepository
+from infrastrcture.text_cleaner import BasicCleaner
 from pipeline.preprocessor import TextPreprocessor
 from pipeline.processor import TextProcessingPipeline
+from api.controllers.embed_text import router as embed_router
+from api.controllers.embed_pdf import router as embed_pdf_router
 
-preprocessor = TextPreprocessor(lowercase=False)
-pipeline = TextProcessingPipeline(preprocessor, MODEL_NAME)
-controller = ApiController(pipeline)
+
 
 app = FastAPI(title="Text‐Embedding Service")
-app.include_router(controller.router)
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
+app.include_router(embed_router)
+app.include_router(embed_pdf_router)
+
+# @app.on_event("startup")
+# async def load_model():
+#     # This runs *after* UVicorn has started the server and emitted its logs.
+#     preprocessor = TextPreprocessor(lowercase=False)
+#     pipeline     = TextProcessingPipeline(preprocessor, MODEL_NAME)
+#     controller   = ApiController(pipeline)
+#     app.include_router(controller.router)
+
+@app.get("/health", summary="Health check")
+async def health():
+    return {"status": "ok"}

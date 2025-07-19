@@ -1,6 +1,3 @@
-# embedding/local_embedder.py
-
-from sentence_transformers import SentenceTransformer
 from typing import List
 import logging
 
@@ -33,7 +30,7 @@ class LocalEmbedder:
         self.model_name = model_name
         try:
             # Load the model (this downloads from HF if not cached locally)
-            self.model = SentenceTransformer(model_name)
+            self.model = ""
             print("model name: ",model_name)
             logging.info(f"✅ Loaded SentenceTransformer model '{model_name}'.")
         except Exception as e:

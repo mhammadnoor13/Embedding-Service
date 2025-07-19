@@ -23,12 +23,12 @@ class SupabaseChunkStore:
     def insert_chunks(self, records: List[ChunkRecord]):
         
         """
-        insert a batch of chunk records into the 'chunks' table.
+        insert a batch of chunk records into the 'chunks_embeddings' table.
         """
 
         res = (
             self.client
-                .table("chunks")
+                .table("chunks_embeddings")
                 .insert(records, returning="representation")
                 .execute()
         )
@@ -43,11 +43,11 @@ class SupabaseChunkStore:
         try:
             res = (
                 self.client
-                    .rpc("match_chunks", {"query_embedding": embedding, "match_count": top_k})
+                    .rpc("match_chunks_embeddings", {"query_embedding": embedding, "match_count": top_k})
                     .execute()
             )
         except APIError as e:
             raise
         print("Returned rows:", len(res.data))
         # res.data is a list of dicts with keys chunk_id, raw_text, embedding
-        return [row["raw_text"] for row in res.data]
+        return [row["text"] for row in res.data]

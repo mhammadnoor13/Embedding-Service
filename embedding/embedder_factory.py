@@ -2,6 +2,7 @@
 
 from typing import Protocol
 from embedding.local_embedder import LocalEmbedder
+from embedding.remote_embedder import HFEmbeddingClient
 
 
 class Embedder(Protocol):
@@ -62,4 +63,4 @@ class EmbedderFactory:
         #       raise ValueError(f"Unknown embedder: {name}")
         #
         # Currently, we simply pass `name` to LocalEmbedder and let it attempt to load that model.
-        return LocalEmbedder(model_name=name)
+        return HFEmbeddingClient(model_name=name)
