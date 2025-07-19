@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List
 from uuid import UUID
 
+from domain.entities import SimilarityResult
+
 
 class ITextCleaner(ABC):
     @abstractmethod
@@ -34,3 +36,12 @@ class IPDFRepository(ABC):
     
     async def update_status(self, pdf_id: UUID, status: str) -> None:
         ''' Changing status of the pdf '''
+
+class ISimilarityRepository(ABC):
+    async def search(
+        self,
+        embedding: List[float],
+        k: int,
+        scope: str #text | pdf | both
+    ) -> List[SimilarityResult]:
+        ...

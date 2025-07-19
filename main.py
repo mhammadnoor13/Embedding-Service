@@ -5,11 +5,9 @@ from application.services.embed_text import EmbedTextService
 from config import MODEL_NAME
 from infrastrcture.embedding.hf_embedding import HFEmbeddingModel
 from infrastrcture.supabase_repository.supabase_text_repository import SupaBaseTextRepository
-from infrastrcture.text_cleaner import BasicCleaner
-from pipeline.preprocessor import TextPreprocessor
-from pipeline.processor import TextProcessingPipeline
 from api.controllers.embed_text import router as embed_router
 from api.controllers.embed_pdf import router as embed_pdf_router
+from api.controllers.similarity import router as similarity_router
 
 
 
@@ -22,6 +20,7 @@ logging.basicConfig(
 
 app.include_router(embed_router)
 app.include_router(embed_pdf_router)
+app.include_router(similarity_router)
 
 # @app.on_event("startup")
 # async def load_model():

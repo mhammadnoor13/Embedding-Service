@@ -2,6 +2,9 @@ class EmbedTextError(Exception):
     """Base class for all errors in the Embed Text flow."""
     pass
 
+class TextCleaningError(EmbedTextError):
+    """Raised when cleaning text (or query) fails."""
+    pass
 
 class TextEmbeddingError(EmbedTextError):
     """Raised when the embedding model fails."""
