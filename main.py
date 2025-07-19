@@ -2,7 +2,6 @@ import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from application.services.embed_text import EmbedTextService
-from config import MODEL_NAME
 from infrastrcture.embedding.hf_embedding import HFEmbeddingModel
 from infrastrcture.supabase_repository.supabase_text_repository import SupaBaseTextRepository
 from api.controllers.embed_text import router as embed_router
