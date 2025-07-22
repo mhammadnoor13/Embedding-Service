@@ -17,7 +17,7 @@ class EmbedTextService:
         self._embedder = embedder
         self._repo = repo
 
-    async def execute(self, raw_text: str) -> UUID:
+    async def execute(self, raw_text: str, consultant_id: UUID) -> UUID:
         cleaned_text = self._cleaner.clean(raw_text)
 
         try:
@@ -28,7 +28,7 @@ class EmbedTextService:
             raise TextEmbeddingError("Error during text embedding") from exc
 
 
-        record = EmbeddingRecord(raw_text= raw_text, embedding= vector)
+        record = EmbeddingRecord(consultant_id=consultant_id, raw_text= raw_text, embedding= vector)
 
         try:
             new_id = await self._repo.add(record)

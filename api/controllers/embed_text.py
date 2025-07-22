@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 from application.exceptions import TextEmbeddingError, TextPersistenceError
 from application.services.embed_text import EmbedTextService
@@ -30,10 +30,11 @@ def get_embed_text_service() -> EmbedTextService:
 )
 async def embed_text(
     payload: EmbedTextIn,
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
     service: EmbedTextService = Depends(get_embed_text_service),
 ):
     try:
-        new_id = await service.execute(payload.text)
+        new_id = await service.execute(payload.text, x_user_id)
         return EmbedTextOut(id= new_id)
     except TextEmbeddingError as e:
         raise HTTPException(

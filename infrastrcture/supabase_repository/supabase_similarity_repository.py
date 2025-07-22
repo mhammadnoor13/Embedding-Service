@@ -10,6 +10,7 @@ from domain.interfaces import ISimilarityRepository
 logger = logging.getLogger(__name__)
 
 
+
 class SupabaseSimilarityRepository(ISimilarityRepository):
     def __init__(self):
         url = os.getenv("SUPABASE_URL")
@@ -21,6 +22,7 @@ class SupabaseSimilarityRepository(ISimilarityRepository):
 
     async def search(
         self,
+        consultant_id: UUID,
         embedding: List[float],
         k: int,
         scope: str  # 'text' | 'pdf' | 'both'
@@ -28,6 +30,7 @@ class SupabaseSimilarityRepository(ISimilarityRepository):
         
         loop = asyncio.get_running_loop()
         params = {
+            "consultant_id": str(consultant_id),
             "query_embedding": embedding,
             "k": k,
             "scope": scope,
@@ -38,7 +41,6 @@ class SupabaseSimilarityRepository(ISimilarityRepository):
                 lambda: self.client.rpc("similarity_search", params).execute()
             )
             rows = resp.data or []
-            breakpoint()
 
         except SupabaseException as sb:
             logger.error("Supabase similarity_search RPC failed", exc_info=True)

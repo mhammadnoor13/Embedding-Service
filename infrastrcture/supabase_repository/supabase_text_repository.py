@@ -24,6 +24,8 @@ class SupaBaseTextRepository(ITextRepository):
 
     async def add(self, record: EmbeddingRecord ) -> UUID:
         payload = record.dict()
+        payload["consultant_id"] = str(payload["consultant_id"])
+
         try:
             resp = (self.client.table("previous_cases_embeddings").insert(payload, returning="representation").execute())
             rows = resp.data or []

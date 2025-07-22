@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from gotrue import BaseModel
 from pydantic import Field
 from api.paths import Paths
@@ -42,10 +42,11 @@ def get_similarity_service() -> SimilarityService:
 )
 async def similarity_search(
     payload: SimilaritySearchIn,
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
     service: SimilarityService = Depends(get_similarity_service),
 ):
     try:
-        hits = await service.execute(payload.query, payload.k, payload.scope)
+        hits = await service.execute(x_user_id, payload.query, payload.k, payload.scope)
         return SimilaritySearchOut(
             results=[
                 SimilarityHit(

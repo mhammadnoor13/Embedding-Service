@@ -20,7 +20,7 @@ class IPDFChunker(ABC):
     def chunk(self, pdf_bytes: bytes) -> List[str]: ...
 
 class IPDFRepository(ABC):
-    async def create_pdf(self, filename: str) -> UUID:
+    async def create_pdf(self, filename: str, consultant_id: UUID) -> UUID:
         ''' Insert a row in "pdf_file" with status "Pending", return its UUID.'''
         ...
 

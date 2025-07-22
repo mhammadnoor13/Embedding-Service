@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Header, UploadFile, status
 from pydantic import BaseModel
 
 from api.paths import Paths
@@ -35,11 +35,15 @@ def get_embed_pdf_service() -> EmbedPdfService:
 )
 async def upload_pdf(
     file: UploadFile = File(...),
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
     service: EmbedPdfService = Depends(get_embed_pdf_service),
 ):
     """
     Accept a PDF file, enqueue/process its chunks, and return a pdf_id.
     """
+    if not x_user_id:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing X-User-Id")
+    
     if file.content_type != "application/pdf":
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -48,7 +52,7 @@ async def upload_pdf(
 
     body = await file.read()
     try:
-        pdf_id = await service.execute(body, filename=file.filename)
+        pdf_id = await service.execute(body, x_user_id, filename=file.filename)
     except (PdfChunkingError, PdfEmbeddingError, PdfPersistenceError) as e:
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,

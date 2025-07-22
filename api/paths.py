@@ -1,5 +1,5 @@
 class Paths:
-    EMBED_BASE = "/embed"
+    EMBED_BASE = "/embedding"
 
     EMBED_TEXT = f"{EMBED_BASE}/text"
     EMBED_PDF = f"{EMBED_BASE}/pdf"

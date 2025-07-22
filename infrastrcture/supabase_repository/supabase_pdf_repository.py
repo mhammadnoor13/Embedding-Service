@@ -18,8 +18,8 @@ class SupabasePdfRepository(IPDFRepository):
             raise RuntimeError("Supabase config missing")
         self.client = create_client(url, key)
 
-    async def create_pdf(self, filename):
-        payload = {"filename": filename}
+    async def create_pdf(self, filename, consultant_id):
+        payload = {"filename": filename, "consultant_id": str(consultant_id)}
         try:
             resp = self.client \
                 .table("pdf_files") \

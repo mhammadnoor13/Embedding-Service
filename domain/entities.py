@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 class EmbeddingRecord(BaseModel):
+    consultant_id: UUID
     raw_text: str
     embedding: List[float]
     

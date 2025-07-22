@@ -19,8 +19,8 @@ class EmbedPdfService:
         self._embedder = embedder
         self._repo = repo
 
-    async def execute(self, pdf_bytes, filename: str = "No-Name") -> UUID:
-        pdf_id = await self._repo.create_pdf(filename)
+    async def execute(self, pdf_bytes, consultant_id: UUID, filename: str = "No-Name") -> UUID:
+        pdf_id = await self._repo.create_pdf(filename, consultant_id)
         logger.info("Started PDF processing. id=%s filename=%s", pdf_id, filename)
 
         try:

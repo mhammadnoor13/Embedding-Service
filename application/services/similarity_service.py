@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from uuid import UUID
 from application.exceptions import TextCleaningError, TextEmbeddingError
 from domain.entities import SimilarityResult
 from domain.interfaces import IEmbeddingModel, ISimilarityRepository, ITextCleaner
@@ -19,6 +20,7 @@ class SimilarityService:
 
     async def execute(
         self,
+        consultant_id: UUID,
         query: str,
         k: int = 10,
         scope: str = "both"
@@ -37,6 +39,6 @@ class SimilarityService:
             logger.error("Failed to embed query %r", cleaned, exc_info=True)
             raise TextEmbeddingError("Error during query embedding") from exc
         
-        results = await self._repo.search(vector, k, scope)
+        results = await self._repo.search(consultant_id, vector, k, scope)
         logger.info("Similarity search yielded %d results", len(results))
         return results
