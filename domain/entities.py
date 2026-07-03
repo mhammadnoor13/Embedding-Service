@@ -1,17 +1,19 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
-from pydantic import BaseModel
 
-
-class EmbeddingRecord(BaseModel):
+@dataclass(frozen=True)
+class EmbeddingRecord:
     consultant_id: UUID
     raw_text: str
+    cleaned_text: str
     embedding: List[float]
     
-class SimilarityResult(BaseModel):
+@dataclass(frozen=True)
+class SimilarityResult:
     id: UUID
-    source: str  # 'text' or 'pdf'
+    source: Literal["text", "pdf"] 
     raw_text: str
     pdf_id: Optional[UUID]
     similarity: float

@@ -1,31 +1,48 @@
-class EmbedTextError(Exception):
-    """Base class for all errors in the Embed Text flow."""
+class EmbeddingServiceError(Exception):
+    """Base class for application-level errors in the Embedding Service."""
     pass
 
-class TextCleaningError(EmbedTextError):
-    """Raised when cleaning text (or query) fails."""
+
+class TextCleaningError(EmbeddingServiceError):
+    """Raised when text cleaning fails."""
     pass
 
-class TextEmbeddingError(EmbedTextError):
-    """Raised when the embedding model fails."""
+
+class TextEmbeddingError(EmbeddingServiceError):
+    """Raised when embedding generation fails."""
     pass
 
-class TextPersistenceError(EmbedTextError):
-    """Raised when saving to the repository fails."""
+
+class TextPersistenceError(EmbeddingServiceError):
+    """Raised when saving text embeddings fails."""
     pass
 
-class PdfProcessingError(Exception):
-    """Base class for errors during PDF processing (chunk→embed→persist)."""
+
+class PdfProcessingError(EmbeddingServiceError):
+    """Base class for errors during PDF processing."""
     pass
+
 
 class PdfChunkingError(PdfProcessingError):
-    """Raised if splitting the PDF into text chunks fails."""
+    """Raised when splitting a PDF into chunks fails."""
     pass
+
+
+class PdfCleaningError(PdfProcessingError):
+    """Raised when cleaning a PDF chunk fails."""
+    pass
+
 
 class PdfEmbeddingError(PdfProcessingError):
-    """Raised if embedding any chunk fails."""
+    """Raised when embedding a PDF chunk fails."""
     pass
 
+
 class PdfPersistenceError(PdfProcessingError):
-    """Raised if saving any chunk to the database fails."""
+    """Raised when saving a PDF or its chunks fails."""
+    pass
+
+
+class PdfNotFoundError(PdfProcessingError):
+    """Raised when a PDF record cannot be found."""
     pass
